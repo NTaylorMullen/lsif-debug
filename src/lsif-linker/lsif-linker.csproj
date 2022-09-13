@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -9,11 +9,31 @@
     
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>lsif-linker</ToolCommandName>
-    <PackageOutputPath>./nupkg</PackageOutputPath>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <RepositoryUrl>https://github.com/NTaylorMullen/lsif-linker</RepositoryUrl>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <DebugType>embedded</DebugType>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <PackageId>lsif-linker</PackageId>
+    <VersionPrefix>0.0.1</VersionPrefix>
+    <VersionSuffix>alpha.1</VersionSuffix>
+    <Authors>NTaylorMullen</Authors>
+    <PackageTags>lsif;lsif-debug;.lsif;lsif visualizer</PackageTags>
+    <Description>This dotnet tool can link *.lsif files with a given source. Linked LSIF files are easier to debug and visualize.</Description>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="$(SolutionRoot)$(PackageLicenseFile)" Pack="true" PackagePath="" />
   </ItemGroup>
 
 </Project>
