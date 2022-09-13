@@ -1,4 +1,4 @@
-﻿namespace lsif_linker
+﻿namespace lsif_debug
 {
 	internal static class ConsolePlus
 	{

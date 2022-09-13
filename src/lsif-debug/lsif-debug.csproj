@@ -3,16 +3,16 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net6.0</TargetFramework>
-    <RootNamespace>lsif_linker</RootNamespace>
+    <RootNamespace>lsif_debug</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     
     <PackAsTool>true</PackAsTool>
-    <ToolCommandName>lsif-linker</ToolCommandName>
+    <ToolCommandName>lsif-debug</ToolCommandName>
   </PropertyGroup>
 
   <PropertyGroup>
-    <RepositoryUrl>https://github.com/NTaylorMullen/lsif-linker</RepositoryUrl>
+    <RepositoryUrl>https://github.com/NTaylorMullen/lsif-debug</RepositoryUrl>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
     <DebugType>embedded</DebugType>
@@ -20,12 +20,12 @@
 
   <PropertyGroup>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
-    <PackageId>lsif-linker</PackageId>
+    <PackageId>lsif-debug</PackageId>
     <VersionPrefix>0.0.1</VersionPrefix>
     <VersionSuffix>alpha.1</VersionSuffix>
     <Authors>NTaylorMullen</Authors>
-    <PackageTags>lsif;lsif-debug;.lsif;lsif visualizer</PackageTags>
-    <Description>This dotnet tool can link *.lsif files with a given source. Linked LSIF files are easier to debug and visualize.</Description>
+    <PackageTags>lsif;lsif-debug;.lsif;lsif visualizer;lsif linker</PackageTags>
+    <Description>This dotnet tool allows you to better debug / understand LSIF output.</Description>
   </PropertyGroup>
 
   <ItemGroup>

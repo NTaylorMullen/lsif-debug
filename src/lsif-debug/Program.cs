@@ -1,7 +1,7 @@
 ﻿using System.CommandLine;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Console = lsif_linker.ConsolePlus;
+using Console = lsif_debug.ConsolePlus;
 
 internal class Program
 {
@@ -15,7 +15,7 @@ internal class Program
 	static async Task<int> Main(string[] args)
 	{
 		var cancellationToken = CancellationToken.None;
-		var rootCommand = new RootCommand("Tool to link LSIF files with their original source.");
+		var rootCommand = new RootCommand("Tool to allow you to better debug / understand LSIF output.");
 		var lsifArgument = new Argument<FileInfo>("lsif", "Path to a *.lsif file.");
 		rootCommand.AddArgument(lsifArgument);
 		var sourceArgument = new Argument<DirectoryInfo>("source", "Path to the local source that the LSIF was generated");
