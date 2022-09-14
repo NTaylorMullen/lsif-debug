@@ -154,7 +154,7 @@ async function checkRegistrations(): Promise<void> {
 	}
 	if (databases.size >= 1 && registrations === undefined) {
 		let documentSelector: DocumentSelector = [
-			{ scheme: 'lsif', exclusive: true } as DocumentFilter
+			{ scheme: 'lsif' } as DocumentFilter
 		];
 		let toRegister: BulkRegistration = BulkRegistration.create();
 		toRegister.add(DocumentSymbolRequest.type, {
