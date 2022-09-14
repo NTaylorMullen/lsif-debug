@@ -1,0 +1,69 @@
+{
+	"name": "lsif-browser",
+	"description": "Extension to browse LSIF databases",
+	"author": "Microsoft Corporation",
+	"publisher": "ms-vscode",
+	"license": "MIT",
+	"version": "0.6.0",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/Microsoft/vscode-lsif-extension.git"
+	},
+	"bugs": {
+		"url": "https://github.com/Microsoft/vscode-lsif-extension/issues"
+	},
+	"categories": [],
+	"keywords": [
+		"multi-root ready"
+	],
+	"engines": {
+		"vscode": "^1.56.0"
+	},
+	"activationEvents": [
+		"onFileSystem:lsif",
+		"onCommand:lsif.openDatabase"
+	],
+	"enabledApiProposals": [
+		"documentFiltersExclusive"
+	],
+	"main": "./client/out/extension",
+	"contributes": {
+		"commands": [
+			{
+				"command": "lsif.openDatabase",
+				"title": "Open LSIF Database"
+			}
+		],
+		"configuration": {
+			"type": "object",
+			"title": "Index Format configuration",
+			"properties": {
+				"lsif.trace.server": {
+					"scope": "window",
+					"type": "string",
+					"enum": [
+						"off",
+						"messages",
+						"verbose"
+					],
+					"default": "off",
+					"description": "Traces the communication between VS Code and the language server."
+				}
+			}
+		}
+	},
+	"scripts": {
+		"vscode:prepublish": "npm run compile",
+		"clean": "tsc -b --clean",
+		"compile": "tsc -b",
+		"watch": "tsc -b -w",
+		"postinstall": "cd client && npm install && cd ../server && npm install && cd .."
+	},
+	"devDependencies": {
+		"@types/node": "^14.17.20",
+		"@typescript-eslint/eslint-plugin": "^4.28.2",
+		"@typescript-eslint/parser": "^4.28.2",
+		"eslint": "^7.30.0",
+		"typescript": "^4.4.4"
+	}
+}
