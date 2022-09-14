@@ -14,12 +14,8 @@ namespace lsif_debug
 			PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
 		};
 		private static readonly char[] DirectoryPathSeparators = new[] { '/', '\\' };
-		private readonly Argument<FileInfo> LsifArgument = new("lsif", "Path to a *.lsif file.");
-		private readonly Argument<DirectoryInfo> SourceArgument = new("source", "Path to the local source that the LSIF was generated");
-		private readonly Option<FileInfo> Output = new("output", "File to output the linked LSIF to.");
 
-
-		private LinkCommand() : base(Name, Description)
+		public LinkCommand() : base(Name, Description)
 		{
 			var lsifArgument = new Argument<FileInfo>("lsif", "Path to a *.lsif file.");
 			var sourceArgument = new Argument<DirectoryInfo>("source", "Path to the local source that the LSIF was generated");
@@ -30,12 +26,6 @@ namespace lsif_debug
 			Add(output);
 
 			this.SetHandler(ExecuteAsync, lsifArgument, sourceArgument, output);
-		}
-
-		public static void AddTo(Command command)
-		{
-			var linkCommand = new LinkCommand();
-			command.Add(linkCommand);
 		}
 
 		private async Task ExecuteAsync(FileInfo lsif, DirectoryInfo source, FileInfo? outputFile)

@@ -9,7 +9,8 @@ internal class Program
 		var rootCommand = new RootCommand("Tool to allow you to better debug / understand LSIF output.");
 		rootCommand.SetHandler(() => rootCommand.InvokeAsync("-h"));
 
-		LinkCommand.AddTo(rootCommand);
+		var linkCommand = new LinkCommand();
+		rootCommand.Add(linkCommand);
 
 		return await rootCommand.InvokeAsync(args);
 	}
