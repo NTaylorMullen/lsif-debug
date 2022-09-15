@@ -12,6 +12,9 @@ internal class Program
 		var linkCommand = new LinkCommand();
 		rootCommand.Add(linkCommand);
 
+		var visualizeCommand = new VisualizeCommand();
+		rootCommand.Add(visualizeCommand);
+
 		return await rootCommand.InvokeAsync(args);
 	}
 

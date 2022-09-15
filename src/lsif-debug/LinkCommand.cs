@@ -35,7 +35,7 @@ namespace lsif_debug
 				return;
 			}
 
-			var lsifFiles = ResolveLsifFiles(lsifPath);
+			var lsifFiles = LsifFileResolver.ResolveLsifFiles(lsifPath);
 
 			foreach (var lsif in lsifFiles)
 			{
@@ -62,33 +62,6 @@ namespace lsif_debug
 					Console.WriteWarning($"Failed to link LSIF file '{lsif.FullName}', skipping:{Environment.NewLine}---------Message:----------{Environment.NewLine}{ex.Message}");
 				}
 			}
-		}
-
-		private static List<FileInfo> ResolveLsifFiles(string lsifPath)
-		{
-			var lsifFiles = new List<FileInfo>();
-			if (Path.HasExtension(lsifPath))
-			{
-				// File
-				lsifFiles.Add(new FileInfo(lsifPath));
-			}
-			else
-			{
-				// Directory
-				var resolvedFiles = Directory.GetFiles(lsifPath, "*.lsif", SearchOption.AllDirectories);
-
-				foreach (var filePath in resolvedFiles)
-				{
-					if (filePath.EndsWith(".linked.lsif", StringComparison.OrdinalIgnoreCase))
-					{
-						continue;
-					}
-
-					lsifFiles.Add(new FileInfo(filePath));
-				}
-			}
-
-			return lsifFiles;
 		}
 
 		private static IReadOnlyList<object> ExtractAndLinkJson(FileInfo lsif, DirectoryInfo source)
