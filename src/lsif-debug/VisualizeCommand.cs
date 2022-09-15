@@ -110,8 +110,8 @@ namespace lsif_debug
 					RedirectStandardError = true,
 				},
 			};
-			process.OutputDataReceived += (sender, args) => Console.WriteLine(args?.Data);
-			process.ErrorDataReceived += (sender, args) => Console.WriteError(args?.Data);
+			process.OutputDataReceived += (sender, args) => Console.WriteLine(args?.Data ?? string.Empty);
+			process.ErrorDataReceived += (sender, args) => Console.WriteError(args?.Data ?? string.Empty);
 
 			process.Start();
 			await process.WaitForExitAsync(cancellationToken);
@@ -130,8 +130,8 @@ namespace lsif_debug
 					RedirectStandardError = true,
 				},
 			};
-			process.OutputDataReceived += (sender, args) => Console.WriteLine(args?.Data);
-			process.ErrorDataReceived += (sender, args) => Console.WriteError(args?.Data);
+			process.OutputDataReceived += (sender, args) => Console.WriteLine(args?.Data ?? string.Empty);
+			process.ErrorDataReceived += (sender, args) => Console.WriteError(args?.Data ?? string.Empty);
 
 			process.Start();
 			await process.WaitForExitAsync(cancellationToken);
@@ -141,8 +141,13 @@ namespace lsif_debug
 
 		private string? TryResolvePathToExtensionVsix()
 		{
-			var thisAssemblyLocation = typeof(VisualizeCommand).Assembly.Location ?? typeof(VisualizeCommand).Assembly.CodeBase;
+			var thisAssemblyLocation = typeof(VisualizeCommand).Assembly.Location;
 			var thisAssemblyDirectory = Path.GetDirectoryName(thisAssemblyLocation);
+			if (thisAssemblyDirectory is null)
+			{
+				return null;
+			}
+
 			var extensionVsixPath = Path.Combine(thisAssemblyDirectory, "lsif-visualizer-extension-0.0.1.vsix");
 
 			if (!File.Exists(extensionVsixPath))
