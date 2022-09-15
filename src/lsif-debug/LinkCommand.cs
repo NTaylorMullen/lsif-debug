@@ -65,7 +65,7 @@ namespace lsif_debug
 				}
 				catch (Exception ex)
 				{
-					Console.WriteWarning($"Failed to link LSIF file '{lsif.FullName}', skipping:{Environment.NewLine}---------Message:----------{Environment.NewLine}{ex.Message}");
+					Console.WriteError($"Failed to link LSIF file '{lsif.FullName}', skipping:{Environment.NewLine}---------Message:----------{Environment.NewLine}{ex.Message}");
 				}
 			}
 			await SerializeAsync(linkedLSIF, outputFilePath, CancellationToken.None);
@@ -92,7 +92,17 @@ namespace lsif_debug
 
 			foreach (string line in File.ReadLines(lsif.FullName))
 			{
-				var node = JsonNode.Parse(line);
+				JsonNode? node = null;
+
+				try
+				{
+					node = JsonNode.Parse(line);
+				}
+				catch (Exception ex)
+				{
+					Console.WriteWarning($"Failed to link line in LSIF file '{lsif.FullName}', skipping line:{Environment.NewLine}---------Message:----------{Environment.NewLine}{ex.Message}");
+				}
+
 				if (node is null)
 				{
 					continue;
