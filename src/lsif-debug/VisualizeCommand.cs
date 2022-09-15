@@ -102,7 +102,7 @@ namespace lsif_debug
 				Console.WriteLine($"    - '{lsif.FullName}'");
 			}
 
-			var process = new Process()
+			using var process = new Process()
 			{
 				StartInfo = new ProcessStartInfo(codeExecutablePath, arguments.ToString())
 				{
@@ -110,10 +110,13 @@ namespace lsif_debug
 					RedirectStandardError = true,
 				},
 			};
-			process.OutputDataReceived += (sender, args) => Console.WriteLine(args?.Data ?? string.Empty);
-			process.ErrorDataReceived += (sender, args) => Console.WriteError(args?.Data ?? string.Empty);
+			process.EnableRaisingEvents = true;
+			process.OutputDataReceived += (sender, args) => { if (args?.Data is not null) Console.WriteLine(args.Data); };
+			process.ErrorDataReceived += (sender, args) => { if (args?.Data is not null) Console.WriteError(args.Data); };
 
 			process.Start();
+			process.BeginOutputReadLine();
+			process.BeginErrorReadLine();
 			await process.WaitForExitAsync(cancellationToken);
 
 			return process.ExitCode == 0;
@@ -122,7 +125,7 @@ namespace lsif_debug
 		private async Task<bool> TryInstallExtensionAsync(string codeExecutablePath, string pathToExtensionVsix, CancellationToken cancellationToken)
 		{
 			Console.WriteLine("LSIF visualizer extension is not installed. Attempting to install into VSCode....");
-			var process = new Process()
+			using var process = new Process()
 			{
 				StartInfo = new ProcessStartInfo(codeExecutablePath, $"--install-extension {pathToExtensionVsix}")
 				{
@@ -130,10 +133,12 @@ namespace lsif_debug
 					RedirectStandardError = true,
 				},
 			};
-			process.OutputDataReceived += (sender, args) => Console.WriteLine(args?.Data ?? string.Empty);
-			process.ErrorDataReceived += (sender, args) => Console.WriteError(args?.Data ?? string.Empty);
+			process.OutputDataReceived += (sender, args) => { if (args?.Data is not null) Console.WriteLine(args.Data); };
+			process.ErrorDataReceived += (sender, args) => { if (args?.Data is not null) Console.WriteError(args.Data); };
 
 			process.Start();
+			process.BeginOutputReadLine();
+			process.BeginErrorReadLine();
 			await process.WaitForExitAsync(cancellationToken);
 
 			return process.ExitCode == 0;
@@ -161,11 +166,13 @@ namespace lsif_debug
 		private async Task<bool> IsExtensionInstalledAsync(string codeExecutablePath, CancellationToken cancellationToken)
 		{
 			var extensionSeen = false;
-			var process = new Process()
+			using var process = new Process()
 			{
 				StartInfo = new ProcessStartInfo(codeExecutablePath, "--list-extensions")
 				{
 					RedirectStandardOutput = true,
+					RedirectStandardInput = true,
+					RedirectStandardError = true,
 				},
 			};
 			process.OutputDataReceived += (sender, args) =>
@@ -176,7 +183,10 @@ namespace lsif_debug
 				}
 			};
 
+
 			process.Start();
+			process.BeginOutputReadLine();
+			process.BeginErrorReadLine();
 			await process.WaitForExitAsync(cancellationToken);
 
 			return extensionSeen;
