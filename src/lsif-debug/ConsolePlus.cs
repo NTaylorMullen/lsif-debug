@@ -10,22 +10,14 @@
 
 		public static void WriteWarning(string content)
 		{
-			var originalColor = Console.ForegroundColor;
-			Console.ForegroundColor = ConsoleColor.Yellow;
-			Console.WriteLine("[Warning] " + content);
-			Console.ForegroundColor = originalColor;
-
 			LoggedWarnings.Add(content);
+			WriteWarningCore(content);
 		}
 
 		public static void WriteError(string content)
 		{
-			var originalColor = Console.ForegroundColor;
-			Console.ForegroundColor = ConsoleColor.Red;
-			Console.WriteLine("[Error] " + content);
-			Console.ForegroundColor = originalColor;
-
 			LoggedErrors.Add(content);
+			WriteErrorCore(content);
 		}
 
 		public static void WriteSuccess(string content)
@@ -45,7 +37,7 @@
 
 				foreach (var warning in LoggedWarnings)
 				{
-					WriteWarning(warning);
+					WriteWarningCore(warning);
 				}
 			}
 
@@ -56,9 +48,25 @@
 
 				foreach (var error in LoggedErrors)
 				{
-					WriteError(error);
+					WriteErrorCore(error);
 				}
 			}
+		}
+
+		private static void WriteWarningCore(string content)
+		{
+			var originalColor = Console.ForegroundColor;
+			Console.ForegroundColor = ConsoleColor.Yellow;
+			Console.WriteLine("[Warning] " + content);
+			Console.ForegroundColor = originalColor;
+		}
+
+		private static void WriteErrorCore(string content)
+		{
+			var originalColor = Console.ForegroundColor;
+			Console.ForegroundColor = ConsoleColor.Red;
+			Console.WriteLine("[Error] " + content);
+			Console.ForegroundColor = originalColor;
 		}
 	}
 }
