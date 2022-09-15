@@ -70,7 +70,8 @@ namespace lsif_debug
 			}
 			await SerializeAsync(linkedLSIF, outputFilePath, CancellationToken.None);
 
-			Console.WriteLine();
+			Console.ReplayWarningsAndErrors();
+			Console.WriteLine("------------------------------");
 			Console.WriteSuccess($"Successfully linked lsif file: '{outputFilePath}'.");
 		}
 
@@ -186,7 +187,7 @@ namespace lsif_debug
 							ciStagingRoot ??= TryGetCIStagingRoot(uri.LocalPath, source.FullName);
 							if (ciStagingRoot is null)
 							{
-								Console.WriteWarning($"Could not link project '{uri.LocalPath}' to source directory '{source.FullName}'.");
+								Console.WriteWarning($"Could not link project '{uri.LocalPath}'.");
 								continue;
 							}
 							var relativePath = uri.LocalPath.Substring(ciStagingRoot.Length);
@@ -238,14 +239,13 @@ namespace lsif_debug
 							var readablePath = GetLocalPath(relativeUri, source);
 							if (!File.Exists(readablePath))
 							{
-								Console.WriteWarning($"Could not link document '{relativeUri}''s content to source directory '{readablePath}'. Document content may not be available.");
+								Console.WriteWarning($"Could not link document '{relativeUri}'s content to source directory '{readablePath}'. Document content may not be available.");
 								continue;
 							}
 
 							var fileBytes = File.ReadAllBytes(readablePath);
 							var base64Content = Convert.ToBase64String(fileBytes);
 							node["contents"] = base64Content;
-							Console.WriteLine("  + Embedded document content");
 
 							break;
 						}
