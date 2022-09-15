@@ -2,6 +2,7 @@
 using System.CommandLine;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 using Console = lsif_debug.ConsolePlus;
 
 namespace lsif_debug
@@ -35,41 +36,59 @@ namespace lsif_debug
 				return;
 			}
 
+			var outputFilePath = TryResolveOutputFilePath(lsifPath);
+			if (outputFilePath is null)
+			{
+				Console.WriteError($"Could not resolve output file '{lsifPath}'");
+				return;
+			}
+
 			var lsifFiles = LsifFileResolver.ResolveLsifFiles(lsifPath);
+			var sourcePreamble = GetSourcePreamle(source.FullName);
+			var linkedLSIF = new List<object>()
+			{
+				sourcePreamble,
+				MetadataPreamble.Instance,
+			};
+			var universalIdOffset = 0;
 
 			foreach (var lsif in lsifFiles)
 			{
 				try
 				{
-					var outputFilePath = TryResolveOutputFilePath(lsif.FullName);
-					if (outputFilePath is null)
-					{
-						Console.WriteError($"Could not resolve output file '{lsif.FullName}'");
-						continue;
-					}
-
 					Console.WriteLine($"Linking '{lsif.FullName}' to '{source.FullName}'");
 					Console.WriteLine();
-					var linkedLSIF = ExtractAndLinkJson(lsif, source);
+					var (linked, idsUsed) = ExtractAndLinkJson(lsif, source, universalIdOffset);
+					universalIdOffset = idsUsed + 1;
 
-					await SerializeAsync(linkedLSIF, outputFilePath, CancellationToken.None);
-
-					Console.WriteLine();
-					Console.WriteSuccess($"Successfully linked lsif file: '{outputFilePath}'.");
+					linkedLSIF.AddRange(linked);
 				}
 				catch (Exception ex)
 				{
 					Console.WriteWarning($"Failed to link LSIF file '{lsif.FullName}', skipping:{Environment.NewLine}---------Message:----------{Environment.NewLine}{ex.Message}");
 				}
 			}
+			await SerializeAsync(linkedLSIF, outputFilePath, CancellationToken.None);
+
+			Console.WriteLine();
+			Console.WriteSuccess($"Successfully linked lsif file: '{outputFilePath}'.");
 		}
 
-		private static IReadOnlyList<object> ExtractAndLinkJson(FileInfo lsif, DirectoryInfo source)
+		private static SourcePreamble GetSourcePreamle(string source)
+		{
+			if (!Uri.TryCreate(source, UriKind.Absolute, out var workspaceRoot))
+			{
+				throw new InvalidOperationException($"Cannot convert {source} into a Uri");
+			}
+
+			return new SourcePreamble(workspaceRoot);
+		}
+
+		private static (IReadOnlyList<object> linkedLsif, int idsUsed) ExtractAndLinkJson(FileInfo lsif, DirectoryInfo source, int universalIdOffset)
 		{
 			var linkedLSIF = new List<object>();
-			var hasSourcePreamble = false;
-			var hasMetaDataPreamble = false;
 			string? ciStagingRoot = null;
+			var idsUsed = universalIdOffset;
 
 			foreach (string line in File.ReadLines(lsif.FullName))
 			{
@@ -81,6 +100,9 @@ namespace lsif_debug
 
 				linkedLSIF.Add(node);
 
+				var universalId = ConvertIdsToUniversal(node, universalIdOffset);
+				idsUsed = Math.Max(universalId, idsUsed);
+
 				var labelNode = node["label"];
 				if (labelNode is null)
 				{
@@ -91,16 +113,6 @@ namespace lsif_debug
 
 				switch (label)
 				{
-					case "source":
-						{
-							hasSourcePreamble = true;
-							break;
-						}
-					case "metaData":
-						{
-							hasMetaDataPreamble = true;
-							break;
-						}
 					case "project":
 						{
 							// Need to update the document content with the corresponding file content.
@@ -185,22 +197,73 @@ namespace lsif_debug
 				}
 			}
 
-			if (!hasSourcePreamble)
+			return (linkedLSIF, idsUsed);
+		}
+
+		private static int ConvertIdsToUniversal(JsonNode node, int universalIdOffset)
+		{
+			var idProperty = node["id"];
+			var newUniversalId = universalIdOffset;
+			if (idProperty is not null)
 			{
-				if (!Uri.TryCreate(source.FullName, UriKind.Absolute, out var workspaceRoot))
+				// Lets offset the ID
+				var id = idProperty.GetValue<int>();
+				var universalId = id + universalIdOffset;
+				node["id"] = universalId;
+
+				// When we encounter an ID we want to tell our caller what we found.
+				newUniversalId = universalId;
+			}
+
+			var documentProperty = node["document"];
+			if (documentProperty is not null)
+			{
+				// Lets offset the ID
+				var id = documentProperty.GetValue<int>();
+				var universalId = id + universalIdOffset;
+				node["document"] = universalId;
+			}
+
+			var outVProperty = node["outV"];
+			if (outVProperty is not null)
+			{
+				// Lets offset the ID
+				var id = outVProperty.GetValue<int>();
+				var universalId = id + universalIdOffset;
+				node["outV"] = universalId;
+			}
+
+			var inVProperty = node["inV"];
+			if (inVProperty is not null)
+			{
+				// Lets offset the ID
+				var id = inVProperty.GetValue<int>();
+				var universalId = id + universalIdOffset;
+				node["inV"] = universalId;
+			}
+
+			var inVsProperty = node["inVs"];
+			if (inVsProperty is not null)
+			{
+				// Lets offset the ID
+				var inVsArray = inVsProperty as JsonArray;
+				if (inVsArray is not null && inVsArray.Count > 0)
 				{
-					throw new InvalidOperationException($"Cannot convert {source.FullName} into a Uri");
+					for (var i = 0; i < inVsArray.Count; i++)
+					{
+						var idNode = inVsArray[i];
+						if (idNode is null)
+						{
+							continue;
+						}
+						var id = idNode.GetValue<int>();
+						var universalId = id + universalIdOffset;
+						inVsArray[i] = universalId;
+					}
 				}
-
-				linkedLSIF.Insert(0, new SourcePreamble(workspaceRoot));
 			}
 
-			if (!hasMetaDataPreamble)
-			{
-				linkedLSIF.Insert(0, MetadataPreamble.Instance);
-			}
-
-			return linkedLSIF;
+			return newUniversalId;
 		}
 
 		private static string GetLinkedFilePath(Uri relativeUri, DirectoryInfo source)
