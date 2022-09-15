@@ -92,17 +92,7 @@ namespace lsif_debug
 
 			foreach (string line in File.ReadLines(lsif.FullName))
 			{
-				JsonNode? node = null;
-
-				try
-				{
-					node = JsonNode.Parse(line);
-				}
-				catch (Exception ex)
-				{
-					Console.WriteWarning($"Failed to link line in LSIF file '{lsif.FullName}', skipping line:{Environment.NewLine}---------Message:----------{Environment.NewLine}{ex.Message}");
-				}
-
+				var node = JsonNode.Parse(line);
 				if (node is null)
 				{
 					continue;
@@ -110,8 +100,63 @@ namespace lsif_debug
 
 				linkedLSIF.Add(node);
 
-				var universalId = ConvertIdsToUniversal(node, universalIdOffset);
-				idsUsed = Math.Max(universalId, idsUsed);
+				var idProperty = node["id"];
+				if (idProperty is not null)
+				{
+					// Lets offset the ID
+					var id = idProperty.GetValue<int>();
+					var universalId = id + universalIdOffset;
+					idsUsed = Math.Max(universalId, idsUsed);
+					node["id"] = universalId;
+				}
+
+				var documentProperty = node["document"];
+				if (documentProperty is not null)
+				{
+					// Lets offset the ID
+					var id = documentProperty.GetValue<int>();
+					var universalId = id + universalIdOffset;
+					node["document"] = universalId;
+				}
+
+				var outVProperty = node["outV"];
+				if (outVProperty is not null)
+				{
+					// Lets offset the ID
+					var id = outVProperty.GetValue<int>();
+					var universalId = id + universalIdOffset;
+					node["outV"] = universalId;
+				}
+
+				var inVProperty = node["inV"];
+				if (inVProperty is not null)
+				{
+					// Lets offset the ID
+					var id = inVProperty.GetValue<int>();
+					var universalId = id + universalIdOffset;
+					node["inV"] = universalId;
+				}
+
+				var inVsProperty = node["inVs"];
+				if (inVsProperty is not null)
+				{
+					// Lets offset the ID
+					var inVsArray = inVsProperty as JsonArray;
+					if (inVsArray is not null && inVsArray.Count > 0)
+					{
+						for (var i = 0; i < inVsArray.Count; i++)
+						{
+							var idNode = inVsArray[i];
+							if (idNode is null)
+							{
+								continue;
+							}
+							var id = idNode.GetValue<int>();
+							var universalId = id + universalIdOffset;
+							inVsArray[i] = universalId;
+						}
+					}
+				}
 
 				var labelNode = node["label"];
 				if (labelNode is null)
@@ -208,72 +253,6 @@ namespace lsif_debug
 			}
 
 			return (linkedLSIF, idsUsed);
-		}
-
-		private static int ConvertIdsToUniversal(JsonNode node, int universalIdOffset)
-		{
-			var idProperty = node["id"];
-			var newUniversalId = universalIdOffset;
-			if (idProperty is not null)
-			{
-				// Lets offset the ID
-				var id = idProperty.GetValue<int>();
-				var universalId = id + universalIdOffset;
-				node["id"] = universalId;
-
-				// When we encounter an ID we want to tell our caller what we found.
-				newUniversalId = universalId;
-			}
-
-			var documentProperty = node["document"];
-			if (documentProperty is not null)
-			{
-				// Lets offset the ID
-				var id = documentProperty.GetValue<int>();
-				var universalId = id + universalIdOffset;
-				node["document"] = universalId;
-			}
-
-			var outVProperty = node["outV"];
-			if (outVProperty is not null)
-			{
-				// Lets offset the ID
-				var id = outVProperty.GetValue<int>();
-				var universalId = id + universalIdOffset;
-				node["outV"] = universalId;
-			}
-
-			var inVProperty = node["inV"];
-			if (inVProperty is not null)
-			{
-				// Lets offset the ID
-				var id = inVProperty.GetValue<int>();
-				var universalId = id + universalIdOffset;
-				node["inV"] = universalId;
-			}
-
-			var inVsProperty = node["inVs"];
-			if (inVsProperty is not null)
-			{
-				// Lets offset the ID
-				var inVsArray = inVsProperty as JsonArray;
-				if (inVsArray is not null && inVsArray.Count > 0)
-				{
-					for (var i = 0; i < inVsArray.Count; i++)
-					{
-						var idNode = inVsArray[i];
-						if (idNode is null)
-						{
-							continue;
-						}
-						var id = idNode.GetValue<int>();
-						var universalId = id + universalIdOffset;
-						inVsArray[i] = universalId;
-					}
-				}
-			}
-
-			return newUniversalId;
 		}
 
 		private static string GetLinkedFilePath(Uri relativeUri, DirectoryInfo source)
