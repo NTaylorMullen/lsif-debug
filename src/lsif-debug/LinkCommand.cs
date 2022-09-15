@@ -1,4 +1,5 @@
-﻿using System.CommandLine;
+﻿using System.Collections.Generic;
+using System.CommandLine;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Console = lsif_debug.ConsolePlus;
@@ -17,46 +18,82 @@ namespace lsif_debug
 
 		public LinkCommand() : base(Name, Description)
 		{
-			var lsifArgument = new Argument<FileInfo>("lsif", "Path to a *.lsif file.");
+			var lsifArgument = new Argument<string>("lsif", "Path to a *.lsif file or directory of *.lsif files.");
 			var sourceArgument = new Argument<DirectoryInfo>("source", "Path to the local source that the LSIF was generated");
-			var output = new Option<FileInfo>("output", "File to output the linked LSIF to.");
 
 			Add(lsifArgument);
 			Add(sourceArgument);
-			Add(output);
 
-			this.SetHandler(ExecuteAsync, lsifArgument, sourceArgument, output);
+			this.SetHandler(ExecuteAsync, lsifArgument, sourceArgument);
 		}
 
-		private async Task ExecuteAsync(FileInfo lsif, DirectoryInfo source, FileInfo? outputFile)
+		private async Task ExecuteAsync(string lsifPath, DirectoryInfo source)
 		{
-			if (lsif is null || source is null)
+			if (lsifPath is null || source is null)
 			{
 				await this.InvokeAsync("-h");
 				return;
 			}
 
-			var cancellationToken = CancellationToken.None;
-			Console.WriteLine($"Linking '{lsif.FullName}' to '{source.FullName}'");
-			Console.WriteLine();
-			var linkedJson = ExtractAndLinkJson(lsif, source);
-			var outputFilePath = TryResolveOutputFilePath(lsif, outputFile);
-			if (outputFilePath is null)
+			var lsifFiles = ResolveLsifFiles(lsifPath);
+
+			foreach (var lsif in lsifFiles)
 			{
-				return;
+				try
+				{
+					var outputFilePath = TryResolveOutputFilePath(lsif.FullName);
+					if (outputFilePath is null)
+					{
+						Console.WriteError($"Could not resolve output file '{lsif.FullName}'");
+						continue;
+					}
+
+					Console.WriteLine($"Linking '{lsif.FullName}' to '{source.FullName}'");
+					Console.WriteLine();
+					var linkedLSIF = ExtractAndLinkJson(lsif, source);
+
+					await SerializeAsync(linkedLSIF, outputFilePath, CancellationToken.None);
+
+					Console.WriteLine();
+					Console.WriteSuccess($"Successfully linked lsif file: '{outputFilePath}'.");
+				}
+				catch (Exception ex)
+				{
+					Console.WriteWarning($"Failed to link LSIF file '{lsif.FullName}', skipping:{Environment.NewLine}---------Message:----------{Environment.NewLine}{ex.Message}");
+				}
 			}
-
-			await SerializeAsync(linkedJson, outputFilePath, cancellationToken);
-
-			Console.WriteLine();
-			Console.WriteSuccess($"Successfully linked lsif file: '{outputFilePath}'.");
 		}
 
+		private static List<FileInfo> ResolveLsifFiles(string lsifPath)
+		{
+			var lsifFiles = new List<FileInfo>();
+			if (Path.HasExtension(lsifPath))
+			{
+				// File
+				lsifFiles.Add(new FileInfo(lsifPath));
+			}
+			else
+			{
+				// Directory
+				var resolvedFiles = Directory.GetFiles(lsifPath, "*.lsif", SearchOption.AllDirectories);
+
+				foreach (var filePath in resolvedFiles)
+				{
+					if (filePath.EndsWith(".linked.lsif", StringComparison.OrdinalIgnoreCase))
+					{
+						continue;
+					}
+
+					lsifFiles.Add(new FileInfo(filePath));
+				}
+			}
+
+			return lsifFiles;
+		}
 
 		private static IReadOnlyList<object> ExtractAndLinkJson(FileInfo lsif, DirectoryInfo source)
 		{
 			var linkedLSIF = new List<object>();
-
 			var hasSourcePreamble = false;
 			var hasMetaDataPreamble = false;
 			string? ciStagingRoot = null;
@@ -220,18 +257,23 @@ namespace lsif_debug
 			return localPath;
 		}
 
-		private static string? TryResolveOutputFilePath(FileInfo lsif, FileInfo? outputFile)
+		private static string? TryResolveOutputFilePath(string lsifPath)
 		{
-			var outputFilePath = outputFile?.FullName;
-			if (outputFilePath is null)
+			string? outputFilePath;
+			if (Path.HasExtension(lsifPath))
 			{
-				outputFilePath = Path.ChangeExtension(lsif.FullName, "linked.lsif");
+				// File
+				outputFilePath = Path.ChangeExtension(lsifPath, "linked.lsif");
+			}
+			else
+			{
+				// Directory
+				outputFilePath = lsifPath + ".linked.lsif";
 			}
 
 			var directory = Path.GetDirectoryName(outputFilePath);
 			if (!Directory.Exists(directory))
 			{
-				Console.WriteError($"Could not resolve output directory '{directory}'");
 				return null;
 			}
 
