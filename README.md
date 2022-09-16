@@ -7,7 +7,7 @@ This repository contains a dotnet tool that allows you to better debug / underst
 *Note: You must have the [.NET 6.0 SDK](https://dotnet.microsoft.com/en-us/download) installed*
 
 ```powershell
-dotnet tool install lsif-debug --global --version 0.0.1-alpha.1
+dotnet tool install lsif-debug --global --version <TheVersion>
 ```
 
 # Usage
