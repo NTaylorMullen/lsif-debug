@@ -1,3 +1,5 @@
+**NOTE:** This folder is a minimal fork of https://github.com/microsoft/vscode-lsif-extension. It has been repurposed / fixed to work with the lsif-debug tool
+
 # Extension to run a language server from a Language Server Index Format file
 
 The extension allows to browse the content of a LSIF dump stored in a file using LSIF line json format. To open a dump use the command Open LSIF Database.
