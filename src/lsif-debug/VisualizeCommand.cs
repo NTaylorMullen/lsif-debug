@@ -88,7 +88,6 @@ namespace lsif_debug
 
 		private async Task<bool> TryLaunchVSCodeForLSIFAsync(string codeExecutablePath, IReadOnlyList<FileInfo> linkedLsif, CancellationToken cancellationToken)
 		{
-			Console.WriteLine("Visualizing LSIF:");
 			var arguments = new StringBuilder();
 
 			foreach (var lsif in linkedLsif)
@@ -98,8 +97,6 @@ namespace lsif_debug
 					.Append("--folder-uri=\"lsif:///")
 					.Append(normalizedPath)
 					.Append("\" ");
-
-				Console.WriteLine($"    - '{lsif.FullName}'");
 			}
 
 			using var process = new Process()
@@ -112,7 +109,7 @@ namespace lsif_debug
 			};
 			process.EnableRaisingEvents = true;
 			process.OutputDataReceived += (sender, args) => { if (args?.Data is not null) Console.WriteLine(args.Data); };
-			process.ErrorDataReceived += (sender, args) => { if (args?.Data is not null) Console.WriteError(args.Data); };
+			process.ErrorDataReceived += (sender, args) => { if (args?.Data is not null) Console.WriteWarning(args.Data); };
 
 			process.Start();
 			process.BeginOutputReadLine();
@@ -124,7 +121,7 @@ namespace lsif_debug
 
 		private async Task<bool> TryInstallExtensionAsync(string codeExecutablePath, string pathToExtensionVsix, CancellationToken cancellationToken)
 		{
-			Console.WriteLine("LSIF visualizer extension is not installed. Attempting to install into VSCode....");
+			Console.WriteLine("LSIF visualizer extension is not installed. Attempting to install VSCode visualizer extension....");
 			using var process = new Process()
 			{
 				StartInfo = new ProcessStartInfo(codeExecutablePath, $"--install-extension {pathToExtensionVsix}")
@@ -134,7 +131,7 @@ namespace lsif_debug
 				},
 			};
 			process.OutputDataReceived += (sender, args) => { if (args?.Data is not null) Console.WriteLine(args.Data); };
-			process.ErrorDataReceived += (sender, args) => { if (args?.Data is not null) Console.WriteError(args.Data); };
+			process.ErrorDataReceived += (sender, args) => { if (args?.Data is not null) Console.WriteWarning(args.Data); };
 
 			process.Start();
 			process.BeginOutputReadLine();
