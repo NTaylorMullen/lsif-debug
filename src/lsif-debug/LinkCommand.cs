@@ -91,9 +91,26 @@ namespace lsif_debug
 			string? ciStagingRoot = null;
 			var idsUsed = universalIdOffset;
 
-			foreach (string line in File.ReadLines(lsif.FullName))
+			foreach (string readLine in File.ReadLines(lsif.FullName))
 			{
-				var node = JsonNode.Parse(line);
+				var line = readLine;
+				JsonNode? node;
+				try
+				{
+					node = JsonNode.Parse(line);
+				}
+				catch
+				{
+					Console.WriteError($"Error parsing JSON for line: '{line}'");
+
+					// Currently there's a bug in LSIF generation where this invalid JSON character can make its way into the output
+					// This attempts to 
+					Console.WriteError($"Attempting to fix up line");
+					line = line.Replace("\a", "");
+					node = JsonNode.Parse(line);
+					Console.WriteError("Was able to repair line, still logging as error.");
+				}
+
 				if (node is null)
 				{
 					continue;
