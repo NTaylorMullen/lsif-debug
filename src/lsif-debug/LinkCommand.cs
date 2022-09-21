@@ -186,6 +186,14 @@ namespace lsif_debug
 
 				switch (label)
 				{
+					case "source":
+						Console.WriteWarning("Found 'source' node. Stripping from linked output and using default lsif-debug entry.");
+						linkedLSIF.Remove(node);
+						break;
+					case "metaData":
+						Console.WriteWarning("Found 'metaData' node. Stripping from linked output and using default lsif-debug entry.");
+						linkedLSIF.Remove(node);
+						break;
 					case "project":
 						{
 							// Need to update the document content with the corresponding file content.
