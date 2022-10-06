@@ -283,6 +283,11 @@ namespace lsif_debug
 		private static string GetLinkedFilePath(Uri relativeUri, DirectoryInfo source)
 		{
 			var stringifiedUri = relativeUri.ToString().TrimStart(DirectoryPathSeparators);
+			if (stringifiedUri.Contains(source.FullName.Replace('\\', '/')))
+			{
+				return stringifiedUri;
+			}
+
 			var combinedPath = Path.Combine(source.FullName, stringifiedUri);
 			var normalizedPath = combinedPath.Replace('\\', '/');
 			if (!Uri.TryCreate(normalizedPath, UriKind.Absolute, out var linkedUri))
