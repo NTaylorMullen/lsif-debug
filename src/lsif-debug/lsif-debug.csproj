@@ -22,7 +22,7 @@
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageId>lsif-debug</PackageId>
     <VersionPrefix>0.0.1</VersionPrefix>
-    <VersionSuffix>alpha.4</VersionSuffix>
+    <VersionSuffix>alpha.5</VersionSuffix>
     <Authors>NTaylorMullen</Authors>
     <PackageTags>lsif;lsif-debug;.lsif;lsif visualizer;lsif linker</PackageTags>
     <Description>This dotnet tool allows you to better debug / understand LSIF output.</Description>
