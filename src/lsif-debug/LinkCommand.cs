@@ -77,6 +77,7 @@ namespace lsif_debug
 
 		private static SourcePreamble GetSourcePreamle(string source)
 		{
+			source = source.TrimEnd('/', '\\');
 			if (!Uri.TryCreate(source, UriKind.Absolute, out var workspaceRoot))
 			{
 				throw new InvalidOperationException($"Cannot convert {source} into a Uri");
