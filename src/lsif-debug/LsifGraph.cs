@@ -57,7 +57,14 @@
                             }
                             else
                             {
-                                var inVsArray = inVs;
+                                foreach (var inV2 in inVs)
+                                {
+                                    if (!edgesByInVertexId.TryGetValue(inV2, out var inVIdEdgesSet))
+                                    {
+                                        inVIdEdgesSet = edgesByInVertexId[inV2] = new HashSet<EdgeOrVertex>();
+                                    }
+                                    inVIdEdgesSet.Add(edgeOrVertex);
+                                }
                             }
                         }
                     }
@@ -73,7 +80,7 @@
 
         public IReadOnlyDictionary<int, HashSet<EdgeOrVertex>> EdgesByInVertexId { get; }
 
-        public record EdgeOrVertex(int? id, string type, string label, int? outV, int? inV, int[] inVs, Position start, Position end);
+        public record EdgeOrVertex(int? id, string type, string label, int? outV, int? inV, int[] inVs, Uri uri, Position start, Position end);
 
         public record Position(int? line, int? character);
     }
