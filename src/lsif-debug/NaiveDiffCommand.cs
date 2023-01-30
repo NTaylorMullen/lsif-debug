@@ -98,7 +98,7 @@ namespace lsif_debug
 
             foreach (var edge in lsifGraph.EdgesByOutVertexId[id])
             {
-                if (edge.label == "textDocument/definition")
+                if (edge.label == "textDocument/definition" || edge.label == "textDocument/references")
                 {
                     var flattenedResults = new List<FlattenedResult>();
 
@@ -121,6 +121,7 @@ namespace lsif_debug
                     }
 
                     SetFlattenedResults(node, flattenedResults, "flattenedResults");
+                    node["flattenedRequestName"] = edge.label;
                 }
             }
 
