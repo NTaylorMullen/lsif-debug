@@ -1,5 +1,4 @@
 ﻿using System.CommandLine;
-using System.Text.Json;
 using System.Text.Json.Nodes;
 
 namespace lsif_debug
@@ -46,7 +45,7 @@ namespace lsif_debug
                         {
                             var id = node["id"].GetValue<int>();
 
-                            var flattenedResults = new List<string>();
+                            var flattenedResults = new List<FlattenedResult>();
 
                             foreach (var edge in lsifGraph.EdgesByOutVertexId[id])
                             {
@@ -55,7 +54,7 @@ namespace lsif_debug
                                     var item = lsifGraph.VerticiesById[edge.inV.Value];
                                     if (item.label == "range")
                                     {
-                                        flattenedResults.Add($"{item.start.line}, {item.start.character} to {item.end.line}, {item.end.character}");
+                                        //flattenedResults.Add(item);
                                     }
                                 }
                                 else
@@ -65,13 +64,32 @@ namespace lsif_debug
                                         var item = lsifGraph.VerticiesById[inV];
                                         if (item.label == "range")
                                         {
-                                            flattenedResults.Add($"{item.start.line}, {item.start.character} to {item.end.line}, {item.end.character}");
+                                            Uri? uri = new Uri("file:///failed-to-find-document-node.txt");
+                                            foreach (var inEdge in lsifGraph.EdgesByInVertexId[item.id.Value])
+                                            {
+                                                if (inEdge.label == "contains")
+                                                {
+                                                    var documentVertex = lsifGraph.VerticiesById[inEdge.outV.Value];
+                                                    uri = documentVertex.uri;
+                                                }
+                                            }
+
+                                            flattenedResults.Add(new FlattenedResult(uri, item.start, item.end));
                                         }
                                     }
                                 }
-
-                                node["flattenedResults"] = new JsonArray(flattenedResults.Select(result => JsonValue.Create(result)).ToArray());
                             }
+
+                            node["flattenedResults"] = new JsonArray(
+                                flattenedResults
+                                    .OrderBy(x => x.uri.LocalPath)
+                                    .ThenBy(x => x.start.line)
+                                    .ThenBy(x => x.start.character)
+                                    .ThenBy(x => x.end.line)
+                                    .ThenBy(x => x.end.character)
+                                    .Select(
+                                        item => JsonValue.Create(
+                                        $"{item.uri}: ({item.start.line}, {item.start.character}) to ({item.end.line}, {item.end.character})")).ToArray());
                         }
                     }
 
@@ -113,5 +131,7 @@ namespace lsif_debug
 
             await File.WriteAllLinesAsync(lsifPath + ".normalized.lsif", lines, CancellationToken.None);
         }
+
+        private record FlattenedResult(Uri uri, LsifGraph.Position start, LsifGraph.Position end);
     }
 }
