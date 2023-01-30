@@ -40,56 +40,16 @@ namespace lsif_debug
                     if ((node["type"]?.AsValue().TryGetValue<string>(out var type) ?? false) &&
                         type == "vertex")
                     {
-                        if ((node["label"]?.AsValue().TryGetValue<string>(out var label) ?? false) &&
-                            (label == "definitionResult" || label == "referenceResult"))
+                        if (node["label"]?.AsValue().TryGetValue<string>(out var label) ?? false)
                         {
-                            var id = node["id"].GetValue<int>();
-
-                            var flattenedResults = new List<FlattenedResult>();
-
-                            foreach (var edge in lsifGraph.EdgesByOutVertexId[id])
+                            if (label == "definitionResult" || label == "referenceResult")
                             {
-                                if (edge.inV is not null)
-                                {
-                                    var item = lsifGraph.VerticiesById[edge.inV.Value];
-                                    if (item.label == "range")
-                                    {
-                                        //flattenedResults.Add(item);
-                                    }
-                                }
-                                else
-                                {
-                                    foreach (var inV in edge.inVs)
-                                    {
-                                        var item = lsifGraph.VerticiesById[inV];
-                                        if (item.label == "range")
-                                        {
-                                            Uri? uri = new Uri("file:///failed-to-find-document-node.txt");
-                                            foreach (var inEdge in lsifGraph.EdgesByInVertexId[item.id.Value])
-                                            {
-                                                if (inEdge.label == "contains")
-                                                {
-                                                    var documentVertex = lsifGraph.VerticiesById[inEdge.outV.Value];
-                                                    uri = documentVertex.uri;
-                                                }
-                                            }
-
-                                            flattenedResults.Add(new FlattenedResult(uri, item.start, item.end));
-                                        }
-                                    }
-                                }
+                                PopulateFlattenedResultsOnResultVerticies(lsifGraph, node, node["id"].GetValue<int>());
                             }
-
-                            node["flattenedResults"] = new JsonArray(
-                                flattenedResults
-                                    .OrderBy(x => x.uri.LocalPath)
-                                    .ThenBy(x => x.start.line)
-                                    .ThenBy(x => x.start.character)
-                                    .ThenBy(x => x.end.line)
-                                    .ThenBy(x => x.end.character)
-                                    .Select(
-                                        item => JsonValue.Create(
-                                        $"{item.uri}: ({item.start.line}, {item.start.character}) to ({item.end.line}, {item.end.character})")).ToArray());
+                            else if (label == "resultSet")
+                            {
+                                PopulateFlattenedResultsOnResultSetVerticies(lsifGraph, node);
+                            }
                         }
                     }
 
@@ -130,6 +90,90 @@ namespace lsif_debug
             Array.Sort(lines);
 
             await File.WriteAllLinesAsync(lsifPath + ".normalized.lsif", lines, CancellationToken.None);
+        }
+
+        private static void PopulateFlattenedResultsOnResultSetVerticies(LsifGraph lsifGraph, JsonNode node)
+        {
+            var id = node["id"].GetValue<int>();
+
+            foreach (var edge in lsifGraph.EdgesByOutVertexId[id])
+            {
+                if (edge.label == "textDocument/definition")
+                {
+                    if (edge.inV is not null)
+                    {
+                        var definitionResultVertex = lsifGraph.VerticiesById[edge.inV.Value];
+
+                        // TODO: cache this.
+                        PopulateFlattenedResultsOnResultVerticies(lsifGraph, node, definitionResultVertex.id.Value);
+                    }
+                    else
+                    {
+                        foreach (var inV in edge.inVs)
+                        {
+                            var definitionResultVertex = lsifGraph.VerticiesById[inV];
+
+                            // TODO: cache this.
+                            PopulateFlattenedResultsOnResultVerticies(lsifGraph, node, definitionResultVertex.id.Value);
+                        }
+                    }
+                }
+            }
+        }
+
+        private static JsonArray PopulateFlattenedResultsOnResultVerticies(LsifGraph lsifGraph, JsonNode? node, int id)
+        {
+            var flattenedResults = new List<FlattenedResult>();
+
+            foreach (var edge in lsifGraph.EdgesByOutVertexId[id])
+            {
+                if (edge.label == "item")
+                {
+                    if (edge.inV is not null)
+                    {
+                        var item = lsifGraph.VerticiesById[edge.inV.Value];
+                        if (item.label == "range")
+                        {
+                            //flattenedResults.Add(item);
+                        }
+                    }
+                    else
+                    {
+                        foreach (var inV in edge.inVs)
+                        {
+                            var item = lsifGraph.VerticiesById[inV];
+                            if (item.label == "range")
+                            {
+                                Uri? uri = new Uri("file:///failed-to-find-document-node.txt");
+                                foreach (var inEdge in lsifGraph.EdgesByInVertexId[item.id.Value])
+                                {
+                                    if (inEdge.label == "contains")
+                                    {
+                                        var documentVertex = lsifGraph.VerticiesById[inEdge.outV.Value];
+                                        uri = documentVertex.uri;
+                                    }
+                                }
+
+                                flattenedResults.Add(new FlattenedResult(uri, item.start, item.end));
+                            }
+                        }
+                    }
+                }
+            }
+
+            var jsonArray = new JsonArray(
+                flattenedResults
+                    .OrderBy(x => x.uri.LocalPath)
+                    .ThenBy(x => x.start.line)
+                    .ThenBy(x => x.start.character)
+                    .ThenBy(x => x.end.line)
+                    .ThenBy(x => x.end.character)
+                    .Select(
+                        item => JsonValue.Create(
+                        $"{item.uri}: ({item.start.line}, {item.start.character}) to ({item.end.line}, {item.end.character})")).ToArray());
+
+            node["flattenedResults"] = jsonArray;
+            return jsonArray;
         }
 
         private record FlattenedResult(Uri uri, LsifGraph.Position start, LsifGraph.Position end);
