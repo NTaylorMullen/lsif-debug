@@ -84,7 +84,7 @@ namespace lsif_debug
                     }
                 }
 
-                lines[i] = node?.ToJsonString() ?? string.Empty;
+                lines[i] = node?.ToJsonString(new System.Text.Json.JsonSerializerOptions() { WriteIndented = true}) ?? string.Empty;
             }
 
             Array.Sort(lines);
@@ -111,11 +111,13 @@ namespace lsif_debug
             }
             SetFlattenedResults(node, flattenedOrigins, "flattenedOrigins");
 
+            var monikers = new List<string>();
+            var flattenedResults = new List<FlattenedResult>();
+
             foreach (var edge in lsifGraph.EdgesByOutVertexId[id])
             {
                 if (edge.label == "textDocument/definition" || edge.label == "textDocument/references")
                 {
-                    var flattenedResults = new List<FlattenedResult>();
 
                     if (edge.inV is not null)
                     {
@@ -124,9 +126,9 @@ namespace lsif_debug
                         // TODO: cache this.
                         flattenedResults.AddRange(CreateFlattenedResults(lsifGraph, definitionResultVertex.id.Value));
                     }
-                    else
+                    //else
                     {
-                        foreach (var inV in edge.inVs)
+                        foreach (var inV in edge.inVs ?? Array.Empty<int>())
                         {
                             var definitionResultVertex = lsifGraph.VerticiesById[inV];
 
@@ -135,10 +137,30 @@ namespace lsif_debug
                         }
                     }
 
-                    SetFlattenedResults(node, flattenedResults, "flattenedResults");
-                    node["flattenedRequestName"] = edge.label;
+                    SetFlattenedResults(node, flattenedResults, "flattenedResults-" + edge.label);
+
+                    //if (node["flattenedRequestName"] is null) node["flattenedRequestName"] = string.Empty;
+
+                    //node["flattenedRequestName"] += edge.label;
+                }
+                else if (edge.label == "moniker")
+                {
+                    if (edge.inV is not null)
+                    {
+                        monikers.Add(lsifGraph.VerticiesById[edge.inV.Value].identifier);
+                    }
+                    //else
+                    {
+                        foreach (var inV in edge.inVs ?? Array.Empty<int>())
+                        {
+                            monikers.Add(lsifGraph.VerticiesById[inV].identifier);
+                        }
+                    }
                 }
             }
+
+            monikers.Sort();
+            node["monikers"] = new JsonArray(monikers.Select(x => JsonValue.Create(x)).ToArray());
         }
 
         private static JsonArray PopulateFlattenedResultsOnResultVerticies(LsifGraph lsifGraph, JsonNode? node, int id)
@@ -178,12 +200,13 @@ namespace lsif_debug
                         var item = lsifGraph.VerticiesById[edge.inV.Value];
                         if (item.label == "range")
                         {
+                            throw new NotImplementedException();
                             //flattenedResults.Add(item);
                         }
                     }
-                    else
+                    //else
                     {
-                        foreach (var inV in edge.inVs)
+                        foreach (var inV in edge.inVs ?? Array.Empty<int>() )
                         {
                             var item = lsifGraph.VerticiesById[inV];
                             if (item.label == "range")
