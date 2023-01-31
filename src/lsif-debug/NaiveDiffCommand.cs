@@ -1,4 +1,5 @@
 ﻿using System.CommandLine;
+using System.Linq;
 using System.Text.Json.Nodes;
 
 namespace lsif_debug
@@ -30,6 +31,10 @@ namespace lsif_debug
 
             var lsifGraph = LsifGraph.FromLines(lines);
 
+            HashSet<int> activeDocuments = new HashSet<int>();
+            HashSet<int> activeProjects = new HashSet<int>();
+            HashSet<int> seenIds = new HashSet<int>();
+
             for (int i = 0; i < lines.Length; i++)
             {
                 var line = lines[i];
@@ -50,36 +55,104 @@ namespace lsif_debug
                             {
                                 PopulateFlattenedResultsOnResultSetVerticies(lsifGraph, node);
                             }
+                            else if (label == "range")
+                            {
+                                PopulateFlattenedMetadataOnRangeVerticies(lsifGraph, node, activeDocuments, activeProjects);
+                            }
+                            else if (label == "$event")
+                            {
+                                var nodeKind = node["kind"].GetValue<string>();
+                                var nodeScope = node["scope"].GetValue<string>();
+                                if (nodeScope == "document")
+                                {
+                                    if (nodeKind == "begin")
+                                    {
+                                        activeDocuments.Add(node["data"].GetValue<int>());
+                                    }
+                                    else if (nodeKind == "end")
+                                    {
+                                        activeDocuments.Remove(node["data"].GetValue<int>());
+                                    }
+                                }
+                                else if (nodeScope == "project")
+                                {
+                                    if (nodeKind == "begin")
+                                    {
+                                        activeProjects.Add(node["data"].GetValue<int>());
+                                    }
+                                    else if (nodeKind == "end")
+                                    {
+                                        activeProjects.Remove(node["data"].GetValue<int>());
+                                    }
+                                }
+                            }
                         }
                     }
 
                     if (node["id"] is not null)
                     {
+                        if (!seenIds.Add(node["id"].GetValue<int>()))
+                        {
+                            throw new Exception("Duplicate id");
+                        }
+
                         node["id"] = "ID";
                     }
 
                     if (node["outV"] is not null)
                     {
+                        if (!seenIds.Contains(node["outV"].GetValue<int>()))
+                        {
+                            throw new Exception("Oh no");
+                        }
+
                         node["outV"] = "OUTV";
                     }
 
                     if (node["inV"] is not null)
                     {
+                        if (!seenIds.Contains(node["inV"].GetValue<int>()))
+                        {
+                            throw new Exception("Oh no");
+                        }
+
                         node["inV"] = "INV";
                     }
 
                     if (node["inVs"] is JsonArray inVsArray)
                     {
+
+                        foreach (var value in inVsArray)
+                        {
+                            if (!seenIds.Contains(value.GetValue<int>()))
+                            {
+                                throw new Exception("Oh no");
+                            }
+                        }
+
                         node["inVs"] = "inVs count: " + inVsArray.Count;
                     }
 
                     if (node["outVs"] is JsonArray outVsArray)
                     {
+                        foreach (var value in outVsArray)
+                        {
+                            if (!seenIds.Contains(value.GetValue<int>()))
+                            {
+                                throw new Exception("Oh no");
+                            }
+                        }
+
                         node["inVs"] = "inVs count: " + outVsArray.Count;
                     }
 
                     if (node["shard"] is not null)
                     {
+                        if (!seenIds.Contains(node["shard"].GetValue<int>()))
+                        {
+                            throw new Exception("Oh no");
+                        }
+
                         node["shard"] = "SHARD";
                     }
                 }
@@ -87,9 +160,24 @@ namespace lsif_debug
                 lines[i] = node?.ToJsonString(new System.Text.Json.JsonSerializerOptions() { WriteIndented = true}) ?? string.Empty;
             }
 
+            Console.WriteLine($"Remaining Active projects: {activeProjects.Count}");
+            Console.WriteLine($"Remaining Active files: {activeDocuments.Count}");
+
             Array.Sort(lines);
 
             await File.WriteAllLinesAsync(lsifPath + ".normalized.lsif", lines, CancellationToken.None);
+        }
+
+        private static void PopulateFlattenedMetadataOnRangeVerticies(LsifGraph lsifGraph, JsonNode node, HashSet<int> activeDocuments, HashSet<int> activeProjects)
+        {
+            var nodeInGraph = lsifGraph.VerticiesById[node["id"].GetValue<int>()];
+            var uri = UriFromRangeVertex(lsifGraph, nodeInGraph);
+
+            // TODO: warn if there are multiple active docs.
+            //       warn if flattenedUri is not in active docs.
+            node["flattenedUri"] = uri.ToString();
+            node["flattenedActiveDocuments"] = string.Join(';', activeDocuments.OrderBy(x => x).Select(x => lsifGraph.VerticiesById[x].uri));
+            node["flattenedActiveProjects"] = string.Join(';', activeProjects.OrderBy(x => x).Select(x => lsifGraph.VerticiesById[x].name));
         }
 
         private static void PopulateFlattenedResultsOnResultSetVerticies(LsifGraph lsifGraph, JsonNode node)
