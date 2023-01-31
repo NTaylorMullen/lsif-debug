@@ -96,6 +96,21 @@ namespace lsif_debug
         {
             var id = node["id"].GetValue<int>();
 
+            var flattenedOrigins = new List<FlattenedResult>();
+            foreach (var edge in lsifGraph.EdgesByInVertexId[id])
+            {
+                if (edge.label == "next")
+                {
+                    var rangeVertex = lsifGraph.VerticiesById[edge.outV.Value];
+                    if (rangeVertex.label == "range")
+                    {
+                        var uri = UriFromRangeVertex(lsifGraph, rangeVertex);
+                        flattenedOrigins.Add(new FlattenedResult(uri, rangeVertex.start, rangeVertex.end));
+                    }
+                }
+            }
+            SetFlattenedResults(node, flattenedOrigins, "flattenedOrigins");
+
             foreach (var edge in lsifGraph.EdgesByOutVertexId[id])
             {
                 if (edge.label == "textDocument/definition" || edge.label == "textDocument/references")
@@ -124,22 +139,6 @@ namespace lsif_debug
                     node["flattenedRequestName"] = edge.label;
                 }
             }
-
-            var flattenedOrigins = new List<FlattenedResult>();
-            foreach (var edge in lsifGraph.EdgesByInVertexId[id])
-            {
-                if (edge.label == "next")
-                {
-                    var rangeVertex = lsifGraph.VerticiesById[edge.outV.Value];
-                    if (rangeVertex.label == "range")
-                    {
-                        var uri = UriFromRangeVertex(lsifGraph, rangeVertex);
-                        flattenedOrigins.Add(new FlattenedResult(uri, rangeVertex.start, rangeVertex.end));
-                    }
-                }
-            }
-
-            SetFlattenedResults(node, flattenedOrigins, "flattenedOrigins");
         }
 
         private static JsonArray PopulateFlattenedResultsOnResultVerticies(LsifGraph lsifGraph, JsonNode? node, int id)
