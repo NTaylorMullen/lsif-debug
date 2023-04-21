@@ -9,7 +9,7 @@ internal class Program
 		var rootCommand = new RootCommand("Tool to allow you to better debug / understand LSIF output.");
 		rootCommand.SetHandler(() => rootCommand.InvokeAsync("-h"));
 
-		var diffCommand = new NaiveDiffCommand();
+		var diffCommand = new FlattenCommand();
 		rootCommand.AddCommand(diffCommand);
 
 		var linkCommand = new LinkCommand();

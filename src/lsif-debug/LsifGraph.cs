@@ -1,15 +1,17 @@
-﻿namespace lsif_debug
-{
-    using System.Text.Json;
+﻿using System.Text.Json;
 
+namespace lsif_debug
+{
     internal sealed class LsifGraph
     {
         public LsifGraph(
             Dictionary<int, EdgeOrVertex> verticiesById,
+            Dictionary<int, EdgeOrVertex> edgesById,
             Dictionary<int, HashSet<EdgeOrVertex>> edgesByOutVertexId,
             Dictionary<int, HashSet<EdgeOrVertex>> edgesByInVertexId)
         {
             this.VerticiesById = verticiesById;
+            this.EdgesById = edgesById;
             this.EdgesByOutVertexId = edgesByOutVertexId;
             this.EdgesByInVertexId = edgesByInVertexId;
         }
@@ -17,6 +19,7 @@
         public static LsifGraph FromLines(IReadOnlyList<string> lines)
         {
             var verticiesById = new Dictionary<int, EdgeOrVertex>();
+            var edgesById = new Dictionary<int, EdgeOrVertex>();
             var edgesByOutVertexId = new Dictionary<int, HashSet<EdgeOrVertex>>();
             var edgesByInVertexId = new Dictionary<int, HashSet<EdgeOrVertex>>();
 
@@ -35,9 +38,15 @@
                     }
                     else if (edgeOrVertex.type == "edge")
                     {
+                        var id = edgeOrVertex.id;
                         var outV = edgeOrVertex.outV;
                         var inV = edgeOrVertex.inV;
                         var inVs = edgeOrVertex.inVs;
+
+                        if (id is not null)
+                        {
+                            edgesById.Add(id.Value, edgeOrVertex);
+                        }
 
                         if (outV is not null)
                         {
@@ -71,10 +80,12 @@
                 }
             }
 
-            return new LsifGraph(verticiesById, edgesByOutVertexId, edgesByInVertexId);
+            return new LsifGraph(verticiesById, edgesById, edgesByOutVertexId, edgesByInVertexId);
         }
 
         public IReadOnlyDictionary<int, EdgeOrVertex> VerticiesById { get; }
+
+        public IReadOnlyDictionary<int, EdgeOrVertex> EdgesById { get; }
 
         public IReadOnlyDictionary<int, HashSet<EdgeOrVertex>> EdgesByOutVertexId { get; }
 
